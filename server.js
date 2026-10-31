@@ -165,15 +165,14 @@ const server = http.createServer((req, res) => {
       const desc = clean(body.desc, MAX_DESC);
 
       const url = cleanUrl(body.url);
-      if (!url) return json(res, 400, { error: 'That link does not look right. It needs to start with http:// or https:// and be reachable.' });
 
       const submission = {
         id: crypto.randomBytes(6).toString('hex'),
         name,
-        url,
         t: new Date().toISOString(),
       };
       if (desc) submission.desc = desc;
+      if (url) submission.url = url;
       db.submissions.unshift(submission);
       save();
       return json(res, 200, { ok: true, submission });

@@ -32,6 +32,13 @@ echo "$r" | grep -q '"ok":true' || { echo "FAIL post-no-members: $r"; exit 1; }
 echo "$r" | grep -q 'boycott alternatives' || { echo "FAIL post-no-members: description not stored: $r"; exit 1; }
 echo "ok   post-no-members"
 
+# POST without a URL (the link is optional)
+r=$(curl -s -X POST "$B/api/submissions" -H 'Content-Type: application/json' -H 'X-Sub-Client: testscript3' \
+  -d '{"name":"No Link Test","desc":"Offline project","hp":""}')
+echo "$r" | grep -q '"ok":true' || { echo "FAIL post-no-url: $r"; exit 1; }
+echo "$r" | grep -q '"url"' && { echo "FAIL post-no-url: url should be absent: $r"; exit 1; }
+echo "ok   post-no-url"
+
 # POST with a members array must still be accepted (older clients / old data)
 r=$(curl -s -X POST "$B/api/submissions" -H 'Content-Type: application/json' -H 'X-Sub-Client: testscript2' \
   -d '{"name":"Legacy Test","members":["A","B"],"url":"https://example.org","hp":""}')

@@ -227,7 +227,7 @@
       </div>
 
       <div class="field">
-        <label for="f-url">Where can we try it? <span class="opt">— the public link</span></label>
+        <label for="f-url">Where can we try it? <span class="opt">— optional, if it is online</span></label>
         <input type="url" id="f-url" maxlength="200" autocomplete="off" placeholder="https://your-project.build.happyoperators.com">
       </div>
 
@@ -332,7 +332,7 @@
       html += '<div class="sub ' + colour + '" style="--rot:' + rot + 'deg">' +
         '<div class="pname">' + esc(s.name) + '</div>' +
         (s.desc ? '<div class="desc">' + esc(s.desc) + '</div>' : '') +
-        '<a class="url" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(hostOf(s.url)) + ' <span class="arr">→</span></a>' +
+        (s.url ? '<a class="url" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(hostOf(s.url)) + ' <span class="arr">→</span></a>' : '') +
         '<div class="t">' + esc(timeOf(s.t)) + '</div>' +
         (ADMIN_KEY ? '<button class="del" data-del="' + esc(s.id) + '" aria-label="Delete this submission">delete</button>' : '') +
         '</div>';
@@ -370,7 +370,7 @@
     var url = $('f-url').value.trim();
 
     if (!name) { msg('Give the project a name first.', false); $('f-name').focus(); return; }
-    if (!/^https?:\/\/.+\..+/i.test(url)) { msg('The link needs to start with http:// or https:// — where can we open it?', false); $('f-url').focus(); return; }
+    if (url && !/^https?:\/\/.+\..+/i.test(url)) { msg('The link needs to start with http:// or https:// — or leave it empty.', false); $('f-url').focus(); return; }
 
     var btn = $('submit-btn');
     btn.disabled = true;
