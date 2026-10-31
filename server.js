@@ -24,21 +24,10 @@ const MAX_URL = 200;
 // Rate limits
 const SUB_LIMITS = { client: { n: 8, ms: 3600e3 }, ip: { n: 60, ms: 3600e3 } };
 
-// Admin key: set ADMIN_KEY env when you can. On the build platform there is no
-// env override, so if unset we generate one on first boot, persist it in
-// DATA_DIR/admin.json (which survives redeploys) and log it once in the build log.
-let ADMIN_KEY = process.env.ADMIN_KEY || '';
-(function initAdminKey() {
-  if (ADMIN_KEY) return;
-  const f = path.join(DATA_DIR, 'admin.json');
-  try {
-    const stored = JSON.parse(fs.readFileSync(f, 'utf8'));
-    if (stored && stored.key) { ADMIN_KEY = stored.key; return; }
-  } catch (e) { /* not stored yet */ }
-  ADMIN_KEY = crypto.randomBytes(12).toString('base64url');
-  try { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(f, JSON.stringify({ key: ADMIN_KEY })); } catch (e) {}
-  console.log('ADMIN_KEY generated and saved to admin.json:', ADMIN_KEY);
-})();
+// Admin key: set ADMIN_KEY env in Coolify for a real key. Until then a fixed
+// fallback lets Matt moderate from the browser via ?admin=happy — replace it
+// by setting the env var (which always wins).
+let ADMIN_KEY = process.env.ADMIN_KEY || 'happy';
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
