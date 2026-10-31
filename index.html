@@ -164,6 +164,21 @@
     padding:2px 4px;
   }
   .sub .del:hover{color:var(--red);}
+  /* list view */
+  .viewtoggle{display:inline-flex;border:1.5px solid var(--line);border-radius:6px;overflow:hidden;}
+  .viewtoggle button{background:var(--paper);border:none;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--ink-soft);padding:7px 14px;}
+  .viewtoggle button+button{border-left:1.5px solid var(--line);}
+  .viewtoggle button.on{background:var(--ink);color:#fff;}
+  .board.listmode{display:block;}
+  .lrow{display:flex;align-items:flex-start;gap:16px;padding:16px 2px;border-bottom:1px solid var(--line);}
+  .lrow .lbody{flex:1;min-width:0;}
+  .lrow .pname{font-size:16.5px;font-weight:800;line-height:1.3;}
+  .lrow .desc{font-size:13.5px;font-weight:500;color:var(--ink-soft);line-height:1.55;white-space:pre-wrap;word-break:break-word;margin-top:4px;}
+  .lrow .url{display:inline-block;margin-top:4px;font-size:14px;font-weight:700;color:var(--ink);text-decoration-color:var(--red);text-underline-offset:3px;overflow-wrap:anywhere;}
+  .lrow .url .arr{color:var(--red);}
+  .lrow .t{font-size:12px;font-weight:500;color:#9b978c;white-space:nowrap;padding-top:4px;}
+  .lrow .del{background:none;border:none;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:700;color:#b3aea2;padding:4px 2px;}
+  .lrow .del:hover{color:var(--red);}
   @media(prefers-reduced-motion:no-preference){
     .sub{opacity:0;transform:translateY(10px) rotate(var(--rot,0deg));animation:pin .45s ease forwards;}
     @keyframes pin{to{opacity:1;transform:translateY(0) rotate(var(--rot,0deg));}}
@@ -245,6 +260,10 @@
 
   <div class="status">
     <div class="n"><span id="count">…</span> <span class="slash">//</span> submitted</div>
+    <div class="viewtoggle" id="viewtoggle" hidden>
+      <button type="button" data-view="grid">Grid</button>
+      <button type="button" data-view="list">List</button>
+    </div>
     <div class="adminbar" id="adminbar" hidden>
       <a class="btn" id="csv-btn" href="#" download="t4p-submissions.csv">Download CSV</a>
       <button class="btn" id="logout-admin">Log out admin</button>
@@ -315,6 +334,30 @@
   var subs = [];
   var board = $('board');
 
+  // ---------- view (grid or list) ----------
+  var view = 'grid';
+  try {
+    if (localStorage.getItem('t4p-sub-view') === 'list') view = 'list';
+  } catch (e) { /* private mode */ }
+  function applyViewClasses(){
+    var btns = $('viewtoggle').querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) btns[i].className = btns[i].getAttribute('data-view') === view ? 'on' : '';
+    board.className = view === 'list' ? 'board listmode' : 'board';
+  }
+  function setView(v){
+    view = v === 'list' ? 'list' : 'grid';
+    try { localStorage.setItem('t4p-sub-view', view); } catch (e) { /* private mode */ }
+    applyViewClasses();
+    render();
+  }
+  (function(){
+    var vt = $('viewtoggle');
+    vt.hidden = false;
+    var btns = vt.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', function(){ setView(this.getAttribute('data-view')); });
+  })();
+  applyViewClasses();
+
   function render(){
     var count = $('count');
     count.textContent = subs.length + (subs.length === 1 ? ' project' : ' projects');
@@ -325,17 +368,32 @@
       return;
     }
     var html = '';
-    for (var i = 0; i < subs.length; i++) {
-      var s = subs[i];
-      var colour = COLOURS[i % COLOURS.length];
-      var rot = (((i * 37) % 7) - 3) * 0.4;
-      html += '<div class="sub ' + colour + '" style="--rot:' + rot + 'deg">' +
-        '<div class="pname">' + esc(s.name) + '</div>' +
-        (s.desc ? '<div class="desc">' + esc(s.desc) + '</div>' : '') +
-        (s.url ? '<a class="url" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(hostOf(s.url)) + ' <span class="arr">→</span></a>' : '') +
-        '<div class="t">' + esc(timeOf(s.t)) + '</div>' +
-        (ADMIN_KEY ? '<button class="del" data-del="' + esc(s.id) + '" aria-label="Delete this submission">delete</button>' : '') +
-        '</div>';
+    if (view === 'list') {
+      for (var i = 0; i < subs.length; i++) {
+        var s = subs[i];
+        html += '<div class="lrow">' +
+          '<div class="lbody">' +
+            '<div class="pname">' + esc(s.name) + '</div>' +
+            (s.desc ? '<div class="desc">' + esc(s.desc) + '</div>' : '') +
+            (s.url ? '<a class="url" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(hostOf(s.url)) + ' <span class="arr">→</span></a>' : '') +
+          '</div>' +
+          '<div class="t">' + esc(timeOf(s.t)) + '</div>' +
+          (ADMIN_KEY ? '<button class="del" data-del="' + esc(s.id) + '" aria-label="Delete this submission">delete</button>' : '') +
+          '</div>';
+      }
+    } else {
+      for (var j = 0; j < subs.length; j++) {
+        var g = subs[j];
+        var colour = COLOURS[j % COLOURS.length];
+        var rot = (((j * 37) % 7) - 3) * 0.4;
+        html += '<div class="sub ' + colour + '" style="--rot:' + rot + 'deg">' +
+          '<div class="pname">' + esc(g.name) + '</div>' +
+          (g.desc ? '<div class="desc">' + esc(g.desc) + '</div>' : '') +
+          (g.url ? '<a class="url" href="' + esc(g.url) + '" target="_blank" rel="noopener">' + esc(hostOf(g.url)) + ' <span class="arr">→</span></a>' : '') +
+          '<div class="t">' + esc(timeOf(g.t)) + '</div>' +
+          (ADMIN_KEY ? '<button class="del" data-del="' + esc(g.id) + '" aria-label="Delete this submission">delete</button>' : '') +
+          '</div>';
+      }
     }
     board.innerHTML = html;
     if (ADMIN_KEY) {
@@ -382,7 +440,7 @@
       .then(function(res){
         btn.disabled = false;
         if (!res.ok) { msg(res.j.error || 'Something went wrong. Try again.', false); return; }
-        subs.unshift(res.j.submission);
+        subs.push(res.j.submission);
         render();
         form.reset();
         msg('Submitted — see you at the demo at 17:00.', true);

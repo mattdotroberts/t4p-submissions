@@ -130,9 +130,10 @@ const server = http.createServer((req, res) => {
   // ?client=…) must never change which route a request matches.
   const pathOnly = new URL(req.url, 'http://localhost').pathname;
 
-  // ----- API: list -----
+  // ----- API: list (oldest first: first submission at the top) -----
   if (method === 'GET' && pathOnly === '/api/submissions') {
-    return json(res, 200, { submissions: db.submissions, cap: MAX_SUBMISSIONS });
+    const sorted = db.submissions.slice().sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
+    return json(res, 200, { submissions: sorted, cap: MAX_SUBMISSIONS });
   }
 
   // ----- API: create -----
@@ -173,7 +174,7 @@ const server = http.createServer((req, res) => {
       };
       if (desc) submission.desc = desc;
       if (url) submission.url = url;
-      db.submissions.unshift(submission);
+      db.submissions.push(submission);
       save();
       return json(res, 200, { ok: true, submission });
     });

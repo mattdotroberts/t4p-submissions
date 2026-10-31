@@ -45,4 +45,18 @@ r=$(curl -s -X POST "$B/api/submissions" -H 'Content-Type: application/json' -H 
 echo "$r" | grep -q '"ok":true' || { echo "FAIL post-with-members: $r"; exit 1; }
 echo "ok   post-with-members"
 
+# ordering: the first submission must come first in the list
+curl -s -X POST "$B/api/submissions" -H 'Content-Type: application/json' -H 'X-Sub-Client: testscript4' \
+  -d '{"name":"Order A","hp":""}' > /dev/null
+sleep 0.05
+curl -s -X POST "$B/api/submissions" -H 'Content-Type: application/json' -H 'X-Sub-Client: testscript4' \
+  -d '{"name":"Order B","hp":""}' > /dev/null
+r=$(curl -s "$B/api/submissions?client=test")
+posA=$(echo "$r" | grep -bo '"Order A"' | head -1 | cut -d: -f1)
+posB=$(echo "$r" | grep -bo '"Order B"' | head -1 | cut -d: -f1)
+if [ -z "$posA" ] || [ -z "$posB" ] || [ "$posA" -ge "$posB" ]; then
+  echo "FAIL ordering: A@$posA B@$posB"; exit 1
+fi
+echo "ok   ordering-oldest-first"
+
 echo "all routes pass"
