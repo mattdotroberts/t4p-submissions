@@ -1,0 +1,27 @@
+#!/bin/sh
+# Regression test: every route must answer the same with or without a query
+# string. This is the bug class that twice took the site down (page and API
+# 404ing whenever a ?query was present), so it gets checked on every change.
+set -e
+cd "$(dirname "$0")"
+PORT=3999 node server.js &
+PID=$!
+trap 'kill $PID 2>/dev/null' EXIT
+sleep 1
+B=http://127.0.0.1:3999
+check() { # name expected-code url
+  code=$(curl -s -o /dev/null -w '%{http_code}' "$3")
+  if [ "$code" != "$2" ]; then
+    echo "FAIL $1: $3 -> $code (want $2)"; exit 1
+  fi
+  echo "ok   $1"
+}
+check page               200 "$B/"
+check page-with-query    200 "$B/?admin=happy"
+check api-list           200 "$B/api/submissions"
+check api-list-query     200 "$B/api/submissions?client=test"
+check asset              200 "$B/assets/manrope.woff2"
+check asset-query        200 "$B/assets/manrope.woff2?v=1"
+check unknown-route      404 "$B/nope"
+check unknown-with-query 404 "$B/nope?x=1"
+echo "all routes pass"

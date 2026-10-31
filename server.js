@@ -127,7 +127,9 @@ const server = http.createServer((req, res) => {
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
              req.socket.remoteAddress || 'unknown';
   const method = req.method.toUpperCase();
-  const pathOnly = req.url.split('?')[0];
+  // Route on the pathname only, parsed once: query strings (?admin=happy,
+  // ?client=…) must never change which route a request matches.
+  const pathOnly = new URL(req.url, 'http://localhost').pathname;
 
   // ----- API: list -----
   if (method === 'GET' && pathOnly === '/api/submissions') {
@@ -219,7 +221,7 @@ const server = http.createServer((req, res) => {
       return serveStatic(res, path.join(PUBLIC_DIR, 'index.html'), 'text/html; charset=utf-8', false);
     }
     if (pathOnly.startsWith('/assets/') && !pathOnly.includes('..')) {
-      const name = path.basename(req.url);
+      const name = path.basename(pathOnly);
       const types = { '.webp': 'image/webp', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
       const ext = path.extname(name).toLowerCase();
       if (types[ext]) return serveStatic(res, path.join(ASSETS_DIR, name), types[ext], true);
