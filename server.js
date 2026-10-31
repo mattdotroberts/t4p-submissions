@@ -138,6 +138,7 @@ const server = http.createServer((req, res) => {
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
              req.socket.remoteAddress || 'unknown';
   const method = req.method.toUpperCase();
+  const pathOnly = req.url.split('?')[0];
 
   // ----- API: list -----
   if (method === 'GET' && req.url === '/api/submissions') {
@@ -212,7 +213,7 @@ const server = http.createServer((req, res) => {
     return res.end(csv);
   }
 
-  const delMatch = req.url.match(/^\/api\/submissions\/([a-z0-9]+)$/);
+  const delMatch = pathOnly.match(/^\/api\/submissions\/([a-z0-9]+)$/);
   if (method === 'DELETE' && delMatch) {
     const key = String(req.headers['x-admin-key'] || '');
     if (!ADMIN_KEY || key !== ADMIN_KEY) return json(res, 403, { error: 'Not authorised.' });
