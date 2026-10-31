@@ -215,10 +215,10 @@ const server = http.createServer((req, res) => {
 
   // ----- static -----
   if (method === 'GET' || method === 'HEAD') {
-    if (req.url === '/' || req.url === '/index.html') {
+    if (pathOnly === '/' || pathOnly === '/index.html') {
       return serveStatic(res, path.join(PUBLIC_DIR, 'index.html'), 'text/html; charset=utf-8', false);
     }
-    if (req.url.startsWith('/assets/') && !req.url.includes('..')) {
+    if (pathOnly.startsWith('/assets/') && !pathOnly.includes('..')) {
       const name = path.basename(req.url);
       const types = { '.webp': 'image/webp', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
       const ext = path.extname(name).toLowerCase();
