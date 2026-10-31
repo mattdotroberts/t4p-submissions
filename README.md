@@ -13,11 +13,10 @@ Data is stored in `data/submissions.json` (created on first run).
 
 ## Deploy
 
-Deployed through **build.happyoperators.com/deploy** (the same deploy key flow as `t4p-agenda`). Deploys as a Docker app on Coolify:
+Deployed from this public GitHub repo through **build.happyoperators.com/deploy** (the platform builds the Dockerfile and points `t4p-submissions.build.happyoperators.com` at it). Redeploying is the same API call with the same repo and name.
 
-- Build pack: **Dockerfile**, port 3000
-- Domains field must be set (e.g. `t4p-submissions.build.happyoperators.com`) so traffic goes through the proxy
-- Persistent storage volume: mount at **`/app/data`** — submissions survive redeploys there
+- The platform sets `PORT` and `DATA_DIR` (persistent `/data`) — submissions in `/data/submissions.json` survive redeploys
+- No env override for `ADMIN_KEY` through the platform: on first boot the server generates a key, stores it in `/data/admin.json` and uses it from then on. To read it, get a shell on the server (or the Coolify container) and `cat /data/admin.json`. Setting an `ADMIN_KEY` env var on the app in Coolify takes precedence instead.
 
 ## Admin
 
