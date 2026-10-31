@@ -95,26 +95,13 @@
     letter-spacing:.01em;
   }
   .field label .opt{font-weight:500;color:#9b978c;}
-  input[type=text],input[type=url]{
+  input[type=text],input[type=url],textarea{
     width:100%;font-family:var(--sans);font-size:16px;font-weight:500;
     color:var(--ink);background:var(--paper-warm);
     border:1.5px solid var(--line);padding:12px 14px;border-radius:4px;
   }
-  input::placeholder{color:#9b978c;}
-  .memberrow{display:flex;gap:8px;align-items:center;}
-  .memberrow input{flex:1;min-width:0;}
-  .membx{
-    flex:none;background:none;border:none;cursor:pointer;
-    font-family:var(--sans);font-size:18px;font-weight:700;color:#b3aea2;
-    padding:6px 8px;
-  }
-  .membx:hover{color:var(--red);}
-  .addmember{
-    background:none;border:none;cursor:pointer;font-family:var(--sans);
-    font-weight:700;font-size:14px;color:var(--green);padding:2px 0;
-    text-decoration:underline;text-decoration-color:transparent;
-  }
-  .addmember:hover{text-decoration-color:var(--green);}
+  textarea{resize:vertical;min-height:72px;line-height:1.5;}
+  input::placeholder,textarea::placeholder{color:#9b978c;}
   .btn{
     font-family:var(--sans);font-weight:700;font-size:15px;
     text-decoration:none;cursor:pointer;border:none;
@@ -162,7 +149,7 @@
   .sub.s3{background:#EAF3ED;}
   .sub.s4{background:#F7EFD8;}
   .sub .pname{font-size:17px;font-weight:800;line-height:1.3;letter-spacing:-.005em;padding-right:20px;}
-  .sub .team{font-size:13.5px;font-weight:700;color:var(--ink-soft);line-height:1.6;}
+  .sub .desc{font-size:13.5px;font-weight:500;color:var(--ink-soft);line-height:1.55;white-space:pre-wrap;word-break:break-word;margin-top:2px;}
   .sub .url{
     margin-top:auto;font-size:14px;font-weight:700;color:var(--ink);
     text-decoration-color:var(--red);text-underline-offset:3px;
@@ -235,9 +222,8 @@
       </div>
 
       <div class="field">
-        <label>Team <span class="opt">— everyone who worked on it</span></label>
-        <div id="members"></div>
-        <button type="button" class="addmember" id="add-member">+ Add another person</button>
+        <label for="f-desc">What does it do? <span class="opt">— optional, a sentence or two</span></label>
+        <textarea id="f-desc" maxlength="500" rows="3" autocomplete="off" placeholder="One or two lines the judges can read before they open the link"></textarea>
       </div>
 
       <div class="field">
@@ -282,7 +268,6 @@
 (function(){
   'use strict';
 
-  var MAX_MEMBERS = 8;
   var COLOURS = ['s1','s2','s3','s4'];
 
   // ---------- client id ----------
@@ -326,36 +311,6 @@
     } catch (e) { return ''; }
   }
 
-  // ---------- team member fields ----------
-  var membersEl = $('members');
-  function addMemberRow(value){
-    var rows = membersEl.querySelectorAll('.memberrow');
-    if (rows.length >= MAX_MEMBERS) return;
-    var row = document.createElement('div');
-    row.className = 'memberrow';
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.maxLength = 60;
-    input.autocomplete = 'off';
-    input.placeholder = rows.length === 0 ? 'Your name' : 'Teammate ' + rows.length;
-    input.value = value || '';
-    row.appendChild(input);
-    if (rows.length > 0) {
-      var x = document.createElement('button');
-      x.type = 'button';
-      x.className = 'membx';
-      x.setAttribute('aria-label', 'Remove this person');
-      x.textContent = '×';
-      x.addEventListener('click', function(){ row.remove(); $('add-member').hidden = membersEl.querySelectorAll('.memberrow').length >= MAX_MEMBERS; });
-      row.appendChild(x);
-    }
-    membersEl.appendChild(row);
-    $('add-member').hidden = membersEl.querySelectorAll('.memberrow').length >= MAX_MEMBERS;
-  }
-  addMemberRow();
-  addMemberRow();
-  $('add-member').addEventListener('click', function(){ addMemberRow(); membersEl.lastChild.querySelector('input').focus(); });
-
   // ---------- list ----------
   var subs = [];
   var board = $('board');
@@ -374,10 +329,9 @@
       var s = subs[i];
       var colour = COLOURS[i % COLOURS.length];
       var rot = (((i * 37) % 7) - 3) * 0.4;
-      var team = (s.members || []).map(esc).join(' · ');
       html += '<div class="sub ' + colour + '" style="--rot:' + rot + 'deg">' +
         '<div class="pname">' + esc(s.name) + '</div>' +
-        (team ? '<div class="team">' + team + '</div>' : '') +
+        (s.desc ? '<div class="desc">' + esc(s.desc) + '</div>' : '') +
         '<a class="url" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(hostOf(s.url)) + ' <span class="arr">→</span></a>' +
         '<div class="t">' + esc(timeOf(s.t)) + '</div>' +
         (ADMIN_KEY ? '<button class="del" data-del="' + esc(s.id) + '" aria-label="Delete this submission">delete</button>' : '') +
@@ -412,16 +366,10 @@
   form.addEventListener('submit', function(ev){
     ev.preventDefault();
     var name = $('f-name').value.trim();
-    var inputs = membersEl.querySelectorAll('input');
-    var members = [];
-    for (var i = 0; i < inputs.length; i++) {
-      var v = inputs[i].value.trim();
-      if (v && members.indexOf(v) === -1) members.push(v);
-    }
+    var desc = $('f-desc').value.trim();
     var url = $('f-url').value.trim();
 
     if (!name) { msg('Give the project a name first.', false); $('f-name').focus(); return; }
-    if (!members.length) { msg('Add at least one team member.', false); inputs[0].focus(); return; }
     if (!/^https?:\/\/.+\..+/i.test(url)) { msg('The link needs to start with http:// or https:// — where can we open it?', false); $('f-url').focus(); return; }
 
     var btn = $('submit-btn');
@@ -429,7 +377,7 @@
     fetch('/api/submissions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Sub-Client': CLIENT_ID },
-      body: JSON.stringify({ name: name, members: members, url: url, hp: $('f-hp').value })
+      body: JSON.stringify({ name: name, desc: desc, url: url, hp: $('f-hp').value })
     }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
       .then(function(res){
         btn.disabled = false;
@@ -437,9 +385,6 @@
         subs.unshift(res.j.submission);
         render();
         form.reset();
-        membersEl.innerHTML = '';
-        addMemberRow();
-        addMemberRow();
         msg('Submitted — see you at the demo at 17:00.', true);
       })
       .catch(function(){

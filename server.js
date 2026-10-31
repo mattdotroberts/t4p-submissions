@@ -17,8 +17,7 @@ const PUBLIC_DIR = __dirname;
 
 const MAX_SUBMISSIONS = 100;   // hard cap on the board
 const MAX_NAME = 80;
-const MAX_MEMBER = 60;
-const MAX_MEMBERS = 8;
+const MAX_DESC = 500;
 const MAX_URL = 200;
 
 // Rate limits
@@ -145,7 +144,7 @@ const server = http.createServer((req, res) => {
 
       // Honeypot — bots fill it, people don't
       if (typeof body.hp === 'string' && body.hp.trim() !== '') {
-        return json(res, 200, { ok: true, submission: { id: 'ignored', name: 'ok', members: [], url: 'https://ok', t: new Date().toISOString() } });
+        return json(res, 200, { ok: true, submission: { id: 'ignored', name: 'ok', url: 'https://ok', t: new Date().toISOString() } });
       }
 
       if (db.submissions.length >= MAX_SUBMISSIONS) {
@@ -163,9 +162,7 @@ const server = http.createServer((req, res) => {
       const name = clean(body.name, MAX_NAME);
       if (!name) return json(res, 400, { error: 'The project needs a name.' });
 
-      let members = Array.isArray(body.members) ? body.members : [];
-      members = members.map((m) => clean(m, MAX_MEMBER)).filter(Boolean).slice(0, MAX_MEMBERS);
-      if (!members.length) return json(res, 400, { error: 'Add at least one team member.' });
+      const desc = clean(body.desc, MAX_DESC);
 
       const url = cleanUrl(body.url);
       if (!url) return json(res, 400, { error: 'That link does not look right. It needs to start with http:// or https:// and be reachable.' });
@@ -173,10 +170,10 @@ const server = http.createServer((req, res) => {
       const submission = {
         id: crypto.randomBytes(6).toString('hex'),
         name,
-        members,
         url,
         t: new Date().toISOString(),
       };
+      if (desc) submission.desc = desc;
       db.submissions.unshift(submission);
       save();
       return json(res, 200, { ok: true, submission });
@@ -192,9 +189,9 @@ const server = http.createServer((req, res) => {
   if (method === 'GET' && pathOnly === '/api/admin/export.csv') {
     const key = String(req.headers['x-admin-key'] || '');
     if (!ADMIN_KEY || key !== ADMIN_KEY) return json(res, 403, { error: 'Not authorised.' });
-    const rows = [['id', 'time', 'project', 'members', 'url']];
+    const rows = [['id', 'time', 'project', 'description', 'url']];
     for (const s of db.submissions) {
-      rows.push([s.id, s.t, s.name, s.members.join(' | '), s.url]);
+      rows.push([s.id, s.t, s.name, s.desc || '', s.url]);
     }
     const csv = rows.map((r) => r.map(csvField).join(',')).join('\n');
     res.writeHead(200, {
@@ -235,3 +232,17 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`t4p-submissions listening on :${PORT} — db at ${DB_FILE}`);
 });
+
+// Flush a pending debounced save before exiting, so a redeploy landing right
+// after a submission cannot lose it.
+function flushAndExit() {
+  if (!saveTimer) process.exit(0);
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  fs.writeFile(DB_FILE + '.tmp', JSON.stringify(db), (err) => {
+    if (err) console.error('final save failed', err);
+    fs.rename(DB_FILE + '.tmp', DB_FILE, () => process.exit(0));
+  });
+}
+process.on('SIGTERM', flushAndExit);
+process.on('SIGINT', flushAndExit);

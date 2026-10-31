@@ -24,4 +24,18 @@ check asset              200 "$B/assets/manrope.woff2"
 check asset-query        200 "$B/assets/manrope.woff2?v=1"
 check unknown-route      404 "$B/nope"
 check unknown-with-query 404 "$B/nope?x=1"
+
+# POST without members (the form no longer collects names)
+r=$(curl -s -X POST "$B/api/submissions" -H 'Content-Type: application/json' -H 'X-Sub-Client: testscript1' \
+  -d '{"name":"Regression Test","desc":"A tool for finding boycott alternatives","url":"https://example.com","hp":""}')
+echo "$r" | grep -q '"ok":true' || { echo "FAIL post-no-members: $r"; exit 1; }
+echo "$r" | grep -q 'boycott alternatives' || { echo "FAIL post-no-members: description not stored: $r"; exit 1; }
+echo "ok   post-no-members"
+
+# POST with a members array must still be accepted (older clients / old data)
+r=$(curl -s -X POST "$B/api/submissions" -H 'Content-Type: application/json' -H 'X-Sub-Client: testscript2' \
+  -d '{"name":"Legacy Test","members":["A","B"],"url":"https://example.org","hp":""}')
+echo "$r" | grep -q '"ok":true' || { echo "FAIL post-with-members: $r"; exit 1; }
+echo "ok   post-with-members"
+
 echo "all routes pass"
