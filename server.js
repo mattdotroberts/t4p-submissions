@@ -141,12 +141,12 @@ const server = http.createServer((req, res) => {
   const pathOnly = req.url.split('?')[0];
 
   // ----- API: list -----
-  if (method === 'GET' && req.url === '/api/submissions') {
+  if (method === 'GET' && pathOnly === '/api/submissions') {
     return json(res, 200, { submissions: db.submissions, cap: MAX_SUBMISSIONS });
   }
 
   // ----- API: create -----
-  if (method === 'POST' && req.url === '/api/submissions') {
+  if (method === 'POST' && pathOnly === '/api/submissions') {
     return readBody(req, 16 * 1024, (err, body) => {
       if (err || !body || typeof body !== 'object') {
         return json(res, 400, { error: 'Could not read that submission.' });
@@ -193,12 +193,12 @@ const server = http.createServer((req, res) => {
   }
 
   // ----- API: admin -----
-  if (method === 'GET' && req.url === '/api/admin/check') {
+  if (method === 'GET' && pathOnly === '/api/admin/check') {
     const key = String(req.headers['x-admin-key'] || '');
     return json(res, ADMIN_KEY && key === ADMIN_KEY ? 200 : 403, { ok: key === ADMIN_KEY && !!ADMIN_KEY });
   }
 
-  if (method === 'GET' && req.url === '/api/admin/export.csv') {
+  if (method === 'GET' && pathOnly === '/api/admin/export.csv') {
     const key = String(req.headers['x-admin-key'] || '');
     if (!ADMIN_KEY || key !== ADMIN_KEY) return json(res, 403, { error: 'Not authorised.' });
     const rows = [['id', 'time', 'project', 'members', 'url']];
